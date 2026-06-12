@@ -1,8 +1,9 @@
 "use client";
 
-import { signInEmailAction } from "@/app/actions/sign-in-server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { signIn, signUp } from "@/lib/auth-client";
+import { ErrorContext } from "better-auth/react";
 import { useRouter } from "next/navigation";
 import { SubmitEvent, useState } from "react";
 import { toast } from "sonner";
@@ -13,7 +14,6 @@ const Page = () => {
 
   async function handleSignIn(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    setIsLoading(true);
     const form = new FormData(e.currentTarget);
 
     const email = form.get("email") as string;
@@ -22,16 +22,25 @@ const Page = () => {
     if (!email) return toast.error("The email field is required");
     if (!password) return toast.error("The password field is required");
 
-    const { error } = await signInEmailAction(form);
+    await signIn.email(
+      { email, password },
+      {
+        onRequest: () => {
+          setIsLoading(true);
+        },
+        onResponse: () => {
+          setIsLoading(false);
+        },
 
-    if (error) {
-      toast.error(error);
-    } else {
-      toast.success("Sign in successfully");
-      push("/profile");
-    }
-
-    setIsLoading(false);
+        onSuccess: () => {
+          toast.success("Sign in successfully");
+          push("/profile");
+        },
+        onError: (ctx: ErrorContext) => {
+          toast.error(ctx.error.message || "Something wrong");
+        },
+      },
+    );
   }
 
   return (
@@ -51,7 +60,11 @@ const Page = () => {
         </Button>
       </div>
       <div className="mt-4">
-        <Button variant={"link"} type="button" onClick={() => push("/sign-up")}>
+        <Button
+          variant={"link"}
+          type="button"
+          onClick={() => push("/auth/sign-up")}
+        >
           Sign Up
         </Button>
       </div>

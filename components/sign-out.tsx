@@ -16,7 +16,7 @@ function SignOut() {
         onResponse: () => {},
         onSuccess: () => {
           toast.success("Sign out successfully");
-          push("/sign-in");
+          push("/auth/sign-in");
         },
         onError: (ctx: ErrorContext) => {
           toast.error(ctx.error.message || "Something wrong");

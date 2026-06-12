@@ -35,7 +35,7 @@ const Page = () => {
         },
         onSuccess: () => {
           toast.success("Sign up successfully");
-          push("/sign-in");
+          push("/auth/sign-in");
         },
         onError: (ctx: ErrorContext) => {
           toast.error(ctx.error.message || "Something wrong");
@@ -65,7 +65,11 @@ const Page = () => {
         </Button>
       </div>
       <div className="mt-4">
-        <Button variant={"link"} type="button" onClick={() => push("/sign-in")}>
+        <Button
+          variant={"link"}
+          type="button"
+          onClick={() => push("/auth/sign-in")}
+        >
           Sign In
         </Button>
       </div>

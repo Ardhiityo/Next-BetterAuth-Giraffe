@@ -5,13 +5,16 @@ export default function Home() {
   return (
     <div>
       <Button variant={"link"}>
-        <Link href={"/sign-in"}>Sign In</Link>
+        <Link href={"/auth/sign-in"}>Sign In</Link>
       </Button>
       <Button variant={"link"}>
-        <Link href={"/sign-in-server"}>Sign In Server</Link>
+        <Link href={"/auth/sign-in-server"}>Sign In Server</Link>
       </Button>
       <Button variant={"link"}>
-        <Link href={"/sign-up"}>Sign Up</Link>
+        <Link href={"/auth/sign-up"}>Sign Up</Link>
+      </Button>
+      <Button variant={"link"}>
+        <Link href={"/auth/sign-up-server"}>Sign Up Server</Link>
       </Button>
     </div>
   );
