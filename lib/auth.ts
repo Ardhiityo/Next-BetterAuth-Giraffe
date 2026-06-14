@@ -5,6 +5,9 @@ import { v4 as uuidv4 } from "uuid";
 import { nextCookies } from "better-auth/next-js";
 import { APIError, createAuthMiddleware } from "better-auth/api";
 import { normalizeName, validDomains } from "./utils";
+import { Role } from "@/generated/prisma/enums";
+import { admin as adminPlugin } from "better-auth/plugins";
+import { ac, ADMIN, USER } from "./permissions"
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -43,8 +46,32 @@ export const auth = betterAuth({
       generateId: () => uuidv4(),
     },
   },
-  // nextCookies digunakan untuk jika auth dengan serverside via actions
-  plugins: [nextCookies()],
+  plugins: [
+    nextCookies(), // nextCookies digunakan untuk jika auth dengan serverside via actions
+    adminPlugin({
+      /**
+       Access Control instance yang dibuat via createAccessControl(statement). Ini mendefinisikan "daftar permission yang mungkin ada" — semua resource (user, session) dan action-nya (list, create, dst). ac menjadi "induk" dari semua role yang dibuat, karena setiap role hanya boleh assign permission yang sudah didefinisikan di statement.
+       */
+      ac,
+      /**
+      Map antara nama role (string key) dengan role object (hasil ac.newRole(...)). Key inilah yang dicocokkan dengan session.user.role di database saat pengecekan permission. Jadi kalau DB menyimpan "ADMIN", plugin akan lookup roles["ADMIN"] dan memanggil .authorize() untuk cek apakah role itu punya permission yang diminta.
+       */
+      roles: {
+        ADMIN, //key ADMIN, value ADMIN
+        USER //key USER, value USER
+      },
+      /**
+      Role yang otomatis di-assign ke user baru yang dibuat melalui admin plugin (via auth.api.createUser). Ini beda dengan databaseHooks.user.create.before — hook itu untuk user yang daftar via form sign-up biasa. Nilai Role.USER = string "USER".
+      
+      1. auth.api.createUser — kalau tidak ada role yang di-pass saat membuat user lewat endpoint admin, maka defaultRole yang dipakai.
+      2. hasPermission — kalau session.user.role nilainya null atau kosong, plugin fallback ke defaultRole sebagai role-nya saat mengecek permission.
+      */
+      defaultRole: Role.USER,
+      /**
+      Daftar role yang dianggap sebagai "super admin" oleh plugin. Efeknya: user dengan role ini tidak bisa di-ban, tidak bisa dihapus, tidak bisa di-impersonate oleh admin lain (kecuali allowImpersonatingAdmins: true). Ini bukan tentang siapa yang boleh akses endpoint admin — itu diatur lewat permission di roles — tapi tentang siapa yang dilindungi dari aksi admin.
+       */
+      adminRoles: [Role.ADMIN]
+    })],
   session: {
     // default 30 days, satuan second
     expiresIn: 60 * 60 * 24 * 30,
@@ -83,6 +110,29 @@ export const auth = betterAuth({
       }
     }),
   },
+  user: {
+    additionalFields: {
+      role: {
+        type: ["ADMIN", "USER"] as const,
+        //untuk fillable, misal input false, maka field tersebut tidak bisa diisi di form
+        input: false,
+      },
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        // Modify user data before creation
+        before: async (user) => {
+          const ADMIN_EMAILS = process.env.ADMIN_EMAILS?.split(';') ?? [];
+          if (ADMIN_EMAILS.includes(user.email)) {
+            return { data: { ...user, role: Role.ADMIN } };
+          }
+          return { data: { ...user, role: Role.USER } };
+        },
+      }
+    }
+  }
 });
 
 export type ErrorCode = keyof typeof auth.$ERROR_CODES | "UNKNOWN";
