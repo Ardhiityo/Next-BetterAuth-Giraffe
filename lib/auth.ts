@@ -40,6 +40,29 @@ export const auth = betterAuth({
     requireEmailVerification: false, //default
     minPasswordLength: 6,
   },
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+    },
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID as string,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+    },
+  },
+  account: {
+    accountLinking: {
+      /**
+        enable : false
+        Jika email sudah terverifikasi dan login dengan google maka akan tetap ditolak, karena akun sudah teregistrasi dengan email & password.
+
+        enable : true
+        Jika email sudah terverifikasi dan login dengan google maka akan diterima, dan akan menghasilkan account 2 (1. email & password, 2. google)
+       */
+      //default true
+      enabled: false,
+    }
+  },
   advanced: {
     database: {
       // default true, jika ingin custom contohnya pakau uuid
@@ -47,7 +70,6 @@ export const auth = betterAuth({
     },
   },
   plugins: [
-    nextCookies(), // nextCookies digunakan untuk jika auth dengan serverside via actions
     adminPlugin({
       /**
        Access Control instance yang dibuat via createAccessControl(statement). Ini mendefinisikan "daftar permission yang mungkin ada" — semua resource (user, session) dan action-nya (list, create, dst). ac menjadi "induk" dari semua role yang dibuat, karena setiap role hanya boleh assign permission yang sudah didefinisikan di statement.
@@ -71,7 +93,9 @@ export const auth = betterAuth({
       Daftar role yang dianggap sebagai "super admin" oleh plugin. Efeknya: user dengan role ini tidak bisa di-ban, tidak bisa dihapus, tidak bisa di-impersonate oleh admin lain (kecuali allowImpersonatingAdmins: true). Ini bukan tentang siapa yang boleh akses endpoint admin — itu diatur lewat permission di roles — tapi tentang siapa yang dilindungi dari aksi admin.
        */
       adminRoles: [Role.ADMIN]
-    })],
+    }),
+    nextCookies(), // nextCookies digunakan untuk jika auth dengan serverside via actions
+  ],
   session: {
     // default 30 days, satuan second
     expiresIn: 60 * 60 * 24 * 30,
